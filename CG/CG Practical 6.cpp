@@ -1,405 +1,288 @@
+#include <GL/glut.h>
 #include <iostream>
 #include <math.h>
-#include <GL/glut.h>
-#include <list>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
-
-float** pts;
-float R = 1.0, G = 0.0, B = 0.0;
-int sz, enter = 1;
-int gymin,gxmin;
-//control vars
-int reset = 1;
-//translate vars
-int trans=0,transtrack=0;
-//scale vars
-int sx=0, sy=0, sc=0, strack=0;
-//pencil
-int pencil=0;
-//rotation
-int rot = 0,rx = 0, ry = 0, rottrack=0, grxmin, grymin;
-//shear
-//int sx=0, sy=0, sc=0, strack=0;
-
-
-class points{
-    int x;
-    int y;
-    public:
-    points(int x,int y){
-        this->x = x;
-        this->y = y;
-    }
-
-    int getx(){
-        return x;
-    }
-
-    int gety(){
-        return y;
-    }
-};
-list <points*> in;
-
-class arr{
-    public:
-        vector<float>* cols;
-        vector< vector<float> > rows;
-        arr(int m, int n, float arr[]){
-            cols = new vector<float>[m];
-            for(int i=0; i<m; i++)
-                rows.push_back(cols[i]);
-            int count = 0;
-            for(int i=0; i<m; i++)
-                for(int j=0; j<n; j++){
-                    rows[i].push_back(arr[count++]);
-                }
-        }
-        arr(int m, int n){
-            cols = new vector<float>[m];
-            for(int i=0; i<m; i++)
-                rows.push_back(cols[i]);
-        }
-};
-
-
-void init(){
-    glClearColor(1.0,1.0,1.0,1.0);
-    glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(0,640,0,480);
+int ch = 0;
+vector<int> arr;
+int ct = 0;
+float colorarr[] = {1.0,0.0,0.0};
+float flc[] = {};
+float neg[] = {0.0,1.0,1.0};
+void copyarr(float* arr1){
+	for(int i=0; i<3; i++){
+		flc[i] = arr1[i];
+		if(arr1[i] == 0.0f){
+			neg[i] = 1.0f;
+		}
+		if(arr1[i] == 1.0f){
+			neg[i] = 0.0f;
+		}
+	}
 }
 
-arr* mult(arr* x, arr* y){
-    int i,j,k;
-    int r1 = x->rows.size(), c1 = x->rows[0].size(), r2 = y->rows.size(), c2 = y->rows[0].size();
-    arr* answ = new arr(r1,c2);
-    float** ans = new float*[r1];
-    for(i=0; i<r1; i++)
-        ans[i] = new float[c2];
-    for(i=0; i<r1; i++)
-        for(j=0; j<c2; ++j)
-            ans[i][j] = 0.0;
-    for(i=0; i<r1; ++i)
-        for(j=0; j<c2; ++j){
-            for(k=0; k<c1; ++k)
-                ans[i][j]+=x->rows[i][k]*y->rows[k][j];
-            answ->rows[i].push_back(ans[i][j]);
-        }
-    return answ;
-}
-
-void display(arr* tree){
-    for(int i=0; i<tree->rows.size(); i++){
-        for(int j=0; j<tree->rows[0].size();j++)
-            cout<<tree->rows[i][j]<<" ";
-        cout<<endl;
-    }
-}
-
-void drawPolygon(){
-    glBegin(GL_POLYGON);
-    pts = new float*[in.size()];
-    for(int i=0; i<in.size(); i++){
-        pts[i] = new float[2];
-    }
-    sz = in.size();
-    while(in.size()>0){
-        points* temp = in.front();
-        pts[in.size()-1][0] = temp->getx();
-        pts[in.size()-1][1] = temp->gety();
-        glVertex2i(temp->getx(),temp->gety());
-        in.pop_front();
-    }
+void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, float* flc){
+    glColor3f(flc[0],flc[1],flc[2]);
+	glLineWidth(3);
+    glBegin(GL_LINE_LOOP);
+	glVertex2i(x1,y1);	
+	glVertex2i(x2,y2);	
+	glVertex2i(x3,y3);
     glEnd();
+	glLineWidth(1);
+	glFlush();
+}
+
+
+void drawQuadritaleral(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, float* flc){
+    glColor3f(flc[0],flc[1],flc[2]);
+	glLineWidth(3);
+    glBegin(GL_LINE_LOOP);
+	glVertex2i(x1,y1);	
+	glVertex2i(x2,y2);	
+	glVertex2i(x3,y3);
+	glVertex2i(x4,y4);
+    glEnd();
+	glLineWidth(1);
+	glFlush();
+}
+
+void TrnsScaling(vector<int> arr){
+	vector<int> sarr;
+	int sz = arr.size();
+	float Sx, Sy;
+	cout << "Enter Sx scaling factor: ";
+	cin >> Sx;
+	cout << "Enter Sy scaling factor: ";
+	cin >> Sy;
+	for(int i=0; i<sz; i++){
+		if(i % 2 == 0){
+			sarr.push_back(arr.at(i)*Sx);
+		}
+		if(i % 2 == 1){
+			sarr.push_back(arr.at(i)*Sy);
+		}
+	}
+	if (sz == 6){
+		drawTriangle(sarr.at(0),sarr.at(1),sarr.at(2),sarr.at(3),sarr.at(4),sarr.at(5),neg);
+	}
+
+	
+	else if(sz == 7){
+		drawQuadritaleral(sarr.at(0),sarr.at(1),sarr.at(2),sarr.at(3),sarr.at(4),sarr.at(5),sarr.at(6),sarr.at(7),neg);
+	}
+	sarr.clear();
+}
+
+void Rotationabtpt(vector<int> arr, int x, int y){
+	int xr = x;
+	int yr = y; 
+	int angle;
+	cout << "Enter angle in degree's to rotate: ";
+    cin >> angle;
+    float theta = angle * M_PI / 180;
+	vector<int> sarr;
+	int sz = arr.size();
+	for(int i=0; i<sz; i++){
+		if(i % 2 == 0){
+			int nx = xr + ((arr.at(i) - xr)*cos(theta)) - ((arr.at(i+1) - yr)*sin(theta));
+			sarr.push_back(nx);
+		}
+		if(i % 2 == 1){
+			int ny = yr + ((arr.at(i-1) - xr)*sin(theta)) + ((arr.at(i) - yr)*cos(theta));
+			sarr.push_back(ny);
+		}
+	}
+	if (sz == 6){
+		drawTriangle(sarr.at(0),sarr.at(1),sarr.at(2),sarr.at(3),sarr.at(4),sarr.at(5),neg);
+	}
+	
+	else if(sz == 8){
+		drawQuadritaleral(sarr.at(0),sarr.at(1),sarr.at(2),sarr.at(3),sarr.at(4),sarr.at(5),sarr.at(6),sarr.at(7),neg);
+	}
+	sarr.clear();
+}
+
+void mouse(int button, int state, int x, int y)
+{
+	static int xx, yy;
+	xx = x - 300;
+	yy = 300 - y;
+	int sz = arr.size();
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        if (ch == 1)
+		{
+			if (sz < 6){
+				arr.push_back(xx);
+				arr.push_back(yy);
+			}
+			sz = arr.size();
+			if (sz == 6){
+            	drawTriangle(arr.at(0),arr.at(1),arr.at(2),arr.at(3),arr.at(4),arr.at(5),flc);
+			}
+        }
+        if (ch == 2)
+		{
+			if (sz < 4){
+				arr.push_back(xx);
+				arr.push_back(yy);
+			}
+			sz = arr.size();
+			
+        }
+        if (ch == 3)
+		{
+			if (sz < 8){
+				arr.push_back(xx);
+				arr.push_back(yy);
+			}
+			sz = arr.size();
+			if (sz == 8){
+            	drawQuadritaleral(arr.at(0),arr.at(1),arr.at(2),arr.at(3),arr.at(4),arr.at(5),arr.at(6),arr.at(7),flc);
+			}
+        }
+        if (ch == 4)
+		{
+			Rotationabtpt(arr, xx, yy);
+        }
+    }
+    else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+	{
+		if(ct % 3 == 0){
+			colorarr[0] = 1.0;
+			colorarr[1] = 0.0;
+			colorarr[2] = 0.0;
+			cout << "Red color is choosen" << endl;
+		}
+		else if(ct % 3 == 1){
+			colorarr[0] = 0.0;
+			colorarr[1] = 1.0;
+			colorarr[2] = 0.0;
+			cout << "Green  color is choosen" << endl;
+		}
+		else if(ct % 3 == 2){
+			colorarr[0] = 0.0;
+			colorarr[1] = 0.0;
+			colorarr[2] = 1.0;
+			cout << "Blue  color is choosen" << endl;
+		}
+		ct++;
+	}
     glFlush();
 }
 
-void rgb(float r, float g, float b){
-    R = (r * 3.92)/1000;
-    G = (g * 3.92)/1000;
-    B = (b * 3.92)/1000;
-    glColor3f(R,G,B);
-    glBegin(GL_POLYGON);
-        glVertex2i(0,0);
-        glVertex2i(20,0);
-        glVertex2i(20,20);
-        glVertex2i(0,20);
-    glEnd();
-    glFlush();
+void keyboard(unsigned char key, int x, int y)
+{
+    switch (key)
+    {
+		case 't':
+		{
+			ch = 1;
+			copyarr(colorarr);
+			cout << "Triangle is opted" << endl;
+			glutMouseFunc(mouse);
+			break;
+		}
+		case 'c':
+		{
+			ch = 2;
+			copyarr(colorarr);
+			cout << "Circle is opted" << endl;
+			glutMouseFunc(mouse);
+			break;
+		}
+		case 'q':
+		{
+			ch = 3;
+			copyarr(colorarr);
+			cout << "Quadrilateral is opted" << endl;
+			glutMouseFunc(mouse);
+			break;
+		}
+		case 's':
+		{
+			copyarr(colorarr);
+			cout << "Scaling Transformation is opted" << endl;
+			TrnsScaling(arr);
+			break;
+		}
+		
+		case 'R':
+		{
+			ch = 4;
+			copyarr(colorarr);
+			cout << "Rotation about any arbitary point is opted" << endl;
+			glutMouseFunc(mouse);
+			cout << "Click on the arbitary point" << endl;
+			break;
+		}
+	
+		case 'x':
+		{
+			arr.clear();
+			cout << "Queue is cleared" << endl;
+			break;
+		}
+		case 'X':
+		{
+			arr.clear();
+			glClearColor(1.0, 1.0, 1.0, 1.0);
+    		glClear(GL_COLOR_BUFFER_BIT);
+			cout << "Screen is cleared" << endl;
+			break;
+		}
+    }
+    glutPostRedisplay();
 }
 
-void rgb_set(){
-    glColor3f(R,G,B);
-    glBegin(GL_POLYGON);
-        glVertex2i(0,0);
-        glVertex2i(20,0);
-        glVertex2i(20,20);
-        glVertex2i(0,20);
-    glEnd();
-    glFlush();
-}
-
-void redraw(){
+void initialize()
+{
+    glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
-    rgb_set();
-    glBegin(GL_POLYGON);
-    //set globals
-    gxmin = pts[0][0];
-    gymin = pts[0][1];
-    for(int i=0; i<sz; i++){
-        int x = pts[i][0], y = pts[i][1];
-        //cout<<pts[i][0]<<" "<<pts[i][1]<<endl;
-        if(gxmin>=pts[i][0]&&gymin>=pts[i][1])
-        {
-            gxmin = pts[i][0];
-            gymin = pts[i][1];
-        }
-        glVertex2i(x,y);
-    }
+    gluOrtho2D(-300, 300, -300, 300);
+}
+
+void initialaxis(){
+	glColor3f(0,0,0);
+	glLineWidth(2);
+    glBegin(GL_LINES);
+	glVertex2i(-300,0);	
+	glVertex2i(300,0);	
+	glVertex2i(0,-300);	
+	glVertex2i(0,300);	
     glEnd();
-    glFlush();
-    //cout<<"MINX - "<<gxmin<<" MINY - "<<gymin<<endl;
+	glFlush();
+    glutKeyboardFunc(keyboard);
 }
 
-// TRANSLATE
-
-void translate(int tx, int ty, int flush){
-    float tsup[] = {1,0,tx,0,1,ty,0,0,1};
-    arr* tmatrix = new arr(3, 3, tsup);
-    //begin magic
-    for(int i=0; i<sz; i++){
-        float temp[] = {pts[i][0],pts[i][1],1};
-        arr* mtemp = new arr(3, 1,temp);
-        arr* atemp;
-        atemp = mult(tmatrix,mtemp);
-        pts[i][0]  = atemp->rows[0][0];
-        pts[i][1]  = atemp->rows[1][0];
-    }
-    if(flush)
-        redraw();
-}
-
-// SCALE
-
-void scale(float tempx, float tempy){
-    float scalex = 1 + (tempx - sx)/100;
-    float scaley = 1 + (tempy - sy)/100;
-    if(scalex<0)
-        scalex = -1*scalex;
-    if(scaley<0)
-        scaley = -1*scaley;
-
-
-    //cout<<"SX - "<<sx<<" SY - "<<sy<<"corx - "<<tempx<<" cory - "<<tempy<<"    "<<scalex<<" "<<scaley<<endl;
-
-    translate(-gxmin,-gymin,0);
-
-    float ssup[] = {scalex,0,0,0,scaley,0,0,0,1};
-    arr* smatrix = new arr(3, 3, ssup);
-    //begin magic
-    for(int i=0; i<sz; i++){
-        float temp[] = {pts[i][0],pts[i][1],1};
-        arr* mtemp = new arr(3, 1,temp);
-        arr* atemp;
-        atemp = mult(smatrix,mtemp);
-        pts[i][0]  = atemp->rows[0][0];
-        pts[i][1]  = atemp->rows[1][0];
-    }
-
-    translate(gxmin,gymin,0);
-
-    redraw();
-}
-
-// ROTATE
-
-void rotate(float tempy){
-    float deg = (tempy - ry);
-    int degrees = (((int)deg)/10)%360;
-    float cosine = cos(degrees);
-    float sine = sin(degrees);
-
-    //cout<<"degrees - "<<cosine<<" "<<sine<<endl;
-
-    //translate(-grxmin,-grymin,0);
-    translate(-rx,-ry,0);
-
-    float rsup[] = {cosine,-sine,0,sine,cosine,0,0,0,1};
-    arr* rmatrix = new arr(3, 3, rsup);
-    //begin magic
-    for(int i=0; i<sz; i++){
-        float temp[] = {pts[i][0],pts[i][1],1};
-        arr* mtemp = new arr(3, 1,temp);
-        arr* atemp;
-        atemp = mult(rmatrix,mtemp);
-        pts[i][0]  = atemp->rows[0][0];
-        pts[i][1]  = atemp->rows[1][0];
-    }
-
-    //translate(grxmin,grymin,0);
-    translate(rx,ry,0);
-
-    redraw();
-}
-
-//Listeners
-
-void key(unsigned char key_t, int x, int y){
-    if(key_t=='d' && reset == 1){
-        enter = 0;
-        reset = 0;
-        drawPolygon();
-        redraw();
-        in.empty();
-    }
-    if(key_t=='r'){
-        reset = 1;
-        glClear(GL_COLOR_BUFFER_BIT);
-        glFlush();
-        rgb_set();
-        enter = 1;
-        //reset transform vars
-        trans = 0;
-        transtrack = 0;
-        sc = 0;
-        strack = 0;
-		rot = 0;
-		rottrack = 0;
-		pencil = 0;
-    }
-    if(key_t=='q'){
-        redraw();
-    }
-    if(key_t=='t'){
-        trans=1;
-    }
-    if(key_t=='s'){
-        sc=1;
-    }
-    if(key_t=='p'){
-        pencil=1;
-    }
-    if(key_t=='x'){
-        rot=1;
-        grxmin = gxmin;
-        grymin = gymin;
-    }
-
-    if(key_t<=57 && key_t>=48){
-        int val = key_t - 48;
-        switch(val){
-            case 0: rgb(26.0, 188.0, 156.0);break;
-            case 1: rgb(46.0, 204.0, 113.0);break;
-            case 2: rgb(52.0, 152.0, 219.0);break;
-            case 3: rgb(155.0, 89.0, 182.0);break;
-            case 4: rgb(52.0, 73.0, 94.0);break;
-            case 5: rgb(241.0, 196.0, 15.0);break;
-            case 6: rgb(230.0, 126.0, 34.0);break;
-            case 7: rgb(231.0, 76.0, 60.0);break;
-            case 8: rgb(236.0, 240.0, 241.0);break;
-            case 9: rgb(149.0, 165.0, 166.0);break;
-        }
-    }
-}
-
-void mouse(int btn, int state, int x, int y){
-    y = 480-y;
-    if(btn==GLUT_LEFT_BUTTON && state==GLUT_DOWN && enter)
-    {
-        points* temp = new points(x,y);
-        in.push_front(temp);
-        glBegin(GL_POINTS);
-            glVertex2i(x,y);
-        glEnd();
-        glFlush();
-    }
-    if(btn==GLUT_LEFT_BUTTON && state==GLUT_DOWN && sc)
-    {
-        sx = x; sy = y;
-    }
-    if(btn==GLUT_LEFT_BUTTON && state==GLUT_DOWN && rot)
-    {
-        rx = x; ry = y;
-    }
-}
-
-void drag_start(GLint x, GLint y){
-    y = 480-y;
-    if(trans){
-        translate(x-gxmin,y-gymin,1);
-        transtrack = 1;
-    }
-    if(sc){
-        scale(x,y);
-        strack = 1;
-    }
-    if(rot){
-        rotate(y);
-        rottrack = 1;
-    }
-    if(pencil){
-        glPointSize(4);
-        glBegin(GL_POINTS);
-            glVertex2i(x,y);
-        glEnd();
-        glFlush();
-        glPointSize(2);
-    }
-}
-
-void drag_end(GLint x, GLint y){
-    y = 480-y;
-    if(trans && transtrack)
-    {
-        trans = 0;
-        transtrack = 0;
-    }
-    if(sc && strack)
-    {
-        sc = 0;
-        strack = 0;
-    }
-    if(rot && rottrack)
-    {
-        rot = 0;
-        rottrack = 0;
-    }
-    if(pencil){
-        pencil = 0;
-    }
-}
-
-void world(){
-    glPointSize(2);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColor3f(1,0,0);
-    rgb_set();
-}
-
-int main(int argc, char** argv){
+int main(int argc, char **argv)
+{
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
-    glutInitWindowSize(640,480);
-    glutInitWindowPosition(200,200);
-    glutCreateWindow("2D transformation");
-    glutDisplayFunc(world);
-    glutMouseFunc(mouse);
-    glutMotionFunc(drag_start);
-    glutPassiveMotionFunc(drag_end);
-    glutKeyboardFunc(key);
-    init();
+    glutInitDisplayMode(GLUT_SINGLE);
+    glutInitWindowSize(600, 600);
+    glutInitWindowPosition(800, 100);
+    glutCreateWindow("Filling Algorithm");
+	initialize();
+    cout << "Choose your Line type: " << endl;
+    cout << "--------------------------------------------" << endl;
+    cout << "t => Triangle" << endl;
+    cout << "c => Circle" << endl;
+    cout << "q => Quadrilateral" << endl;
+    cout << "--------------------------------------------" << endl;
+    cout << "s => Scaling" << endl;
+    cout << "r => Rotation about center" << endl;
+    cout << "R => Rotation about point" << endl;
+    
+	cout << "--------------------------------------------" << endl;
+	cout << "x => clear the queue" << endl;
+	cout << "X => clear the screen" << endl;
+	cout << "Right Click to change the color" << endl;
+    cout << "--------------------------------------------" << endl;
+    glutDisplayFunc(initialaxis);
     glutMainLoop();
     return 0;
 }
-
-/*'d': Start drawing a polygon (click to set the vertices, press 'd' again to finish)
-'r': Reset the program (clear the screen and reset transformation variables)
-'q': Redraw the current polygon
-'t': Enter translation mode (click and drag to translate the polygon)
-'s': Enter scaling mode (click and drag to scale the polygon)
-'p': Enter pencil mode (freehand drawing)
-'x': Enter rotation mode (click and drag to rotate the polygon)*/
-
